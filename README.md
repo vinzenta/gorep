@@ -69,8 +69,5 @@ go test ./...
 Contributing
 - Open issues or pull requests. Small, focused changes are easiest to review.
 
-License
-- No license file is included. Add a license (for example `MIT` or `Apache-2.0`) if you want to allow reuse.
-
 Source
 - Main implementation: `main.go`
