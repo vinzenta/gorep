@@ -1,4 +1,4 @@
-module github.com/gorep
+module github.com/geofpwhite/gorep
 
 go 1.25.3
 
