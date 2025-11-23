@@ -50,7 +50,7 @@ Flags
 - `-o <path>` : path to output file, where gorep will write each match
 
 Behavior details
-- The first non-flag argument is treated as the regular expression pattern.
+- The first non-flag argument is treated as the regular expression pattern. If it includes a space, it should be inside quotation marks "<pattern>"
 - If additional non-flag arguments are provided after the pattern they are joined into a single input string to search (convenient for one-off searches from the CLI).
 - If no `-f` is provided and no inline text is given, `gorep` reads from `stdin` until EOF.
 - Matches in a line are highlighted in green; printed lines are numbered and prefixed with color-coded labels. When searching directories, each file's results are prefixed by the filename.
