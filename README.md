@@ -47,6 +47,7 @@ gorep "TODO" -f ./src
 Flags
 - `-f <path>` : read input from a file or directory. If a directory is provided, `gorep` will walk the directory and search files it can read.
 - `-no-trim` : disable trimming leading indentation in each printed line. By default `gorep` trims leading tabs/spaces around matches.
+- `-o <path>` : path to output file, where gorep will write each match
 
 Behavior details
 - The first non-flag argument is treated as the regular expression pattern.
