@@ -169,7 +169,7 @@ func recursiveFileSearch(path string) [][2]string {
 	if err != nil {
 		log.Fatal(path + " is not a directory")
 	}
-	if pwd[len(pwd)-len(path):] != path && path != "." && path != "./" && path != ".\\" {
+	if path != "." && path != "./" && path != ".\\" && pwd[len(pwd)-len(path):] != path {
 		pwd += "/" + path
 	}
 	entries, err := os.ReadDir(pwd)
