@@ -37,29 +37,40 @@ gorep "foo" "this is foo and that is bar"
 - Search a file:
 
 ```powershell
-gorep "TODO" -f README.md
+gorep -f README.md "TODO"
 ```
 
 - Search a directory (recursively):
 
 ```powershell
-gorep "TODO" -f ./src
+gorep -f ./src "TODO"
 ```
 
 Flags
-- `-f <path>` : read input from a file or directory. If a directory is provided, `gorep` will walk the directory and search files it can read.
+- `-f <path>` : read input from a file or directory. If a directory is provided, `gorep` will walk the directory and search files it can read concurrently.
 - `-no-trim` : disable trimming leading indentation in each printed line. By default `gorep` trims leading tabs/spaces around matches.
-- `-o <path>` : path to output file, where gorep will write each match
+- `-o <path>` : path to output file, where gorep will write each match.
+- `-workers <n>` : number of concurrent workers for directory search (default: number of CPU cores)
+
+[NOTE] Flags must come BEFORE the pattern argument (standard Go flag package behavior).
 
 Behavior details
-- The first non-flag argument is treated as the regular expression pattern. If it includes a space, it should be inside quotation marks "<pattern>"
+- Flags must be provided BEFORE the pattern argument (standard Go convention).
+- The first non-flag argument is treated as the regular expression pattern. If it includes a space, it should be inside quotation marks "<pattern>".
 - If additional non-flag arguments are provided after the pattern they are joined into a single input string to search (convenient for one-off searches from the CLI).
 - If no `-f` is provided and no inline text is given, `gorep` reads from `stdin` until EOF.
 - Matches in a line are highlighted in green; printed lines are numbered and prefixed with color-coded labels. When searching directories, each file's results are prefixed by the filename.
+- Directory searches use concurrent workers (configurable with `-workers`) for improved performance on multi-core systems.
+
+Improvements in This Version
+- [CONCURRENT] Multi-threaded file processing with worker pool pattern (default: CPU cores)
+- [STREAMING] Files are processed as discovered, not loaded all into memory
+- [OPTIMIZED] Regex runs once per line (not twice) and efficient string building
+- [ROBUST] Proper error handling with context cancellation support
+- [SAFE] Uses absolute paths, never changes working directory
 
 Limitations & Notes
-- The directory traversal implementation changes the working directory while recursing; if you rely on a stable working directory in other parts of a larger script, be cautious.
-- Files that cannot be read are skipped silently when walking directories.
+- Files that cannot be read or are not valid UTF-8 are skipped silently when walking directories.
 - Errors (invalid regexp, unreadable file, etc.) will log a message and exit with a non-zero status.
 
 Testing
