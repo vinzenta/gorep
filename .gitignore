@@ -37,3 +37,8 @@ Thumbs.db
 # Output files from gorep itself
 *.gorep.out
 
+# Coverage reports
+coverage.txt
+coverage.html
+*.coverprofile
+

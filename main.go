@@ -47,32 +47,32 @@ func ConfigureWithArgs(args []string) (*config, error) {
 	if len(args) < 2 {
 		return nil, errors.New("gorep needs a pattern to match")
 	}
-	
+
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	noTrim := fs.Bool("no-trim", false,
 		"disable trimming leading indentation in each line when printed")
 	fileFlag := fs.String("f", "", "take input from a file or directory")
 	outputFile := fs.String("o", "", "save the matches to a file")
 	workers := fs.Int("workers", runtime.NumCPU(), "number of concurrent workers for directory search")
-	
+
 	if err := fs.Parse(args[1:]); err != nil {
 		return nil, err
 	}
-	
+
 	parsedArgs := fs.Args()
 	if len(parsedArgs) == 0 {
 		return nil, errors.New("pattern argument required")
 	}
-	
+
 	re, err := regexp.Compile(parsedArgs[0])
 	if err != nil {
 		return nil, fmt.Errorf("invalid regular expression: %w", err)
 	}
-	
+
 	if *workers < 1 {
 		*workers = 1
 	}
-	
+
 	return newConfig(re, !*noTrim, *fileFlag, *outputFile, parsedArgs, *workers), nil
 }
 
@@ -114,7 +114,7 @@ func (c *config) Main(ctx context.Context) int {
 	if len(c.args) > 1 {
 		str = strings.Join(c.args[1:], " ")
 	}
-	
+
 	switch {
 	case c.file != "":
 		info, err := os.Stat(c.file)
@@ -153,7 +153,7 @@ func (c *config) Main(ctx context.Context) int {
 		}
 		str = builder.String()
 	}
-	
+
 	c.match(str, "", opf)
 	return 0
 }
@@ -161,15 +161,15 @@ func (c *config) Main(ctx context.Context) int {
 func (c *config) searchDirectory(ctx context.Context, path string, outputFile *os.File) error {
 	jobs := make(chan fileJob, c.workers*2)
 	results := make(chan matchResult, c.workers*2)
-	
+
 	var wg sync.WaitGroup
-	
+
 	// Start worker pool
 	for i := 0; i < c.workers; i++ {
 		wg.Add(1)
 		go c.worker(ctx, jobs, results, &wg)
 	}
-	
+
 	// Start result collector
 	done := make(chan struct{})
 	var outputMutex sync.Mutex
@@ -190,7 +190,7 @@ func (c *config) searchDirectory(ctx context.Context, path string, outputFile *o
 		}
 		close(done)
 	}()
-	
+
 	// Walk directory and send jobs
 	go func() {
 		defer close(jobs)
@@ -198,44 +198,44 @@ func (c *config) searchDirectory(ctx context.Context, path string, outputFile *o
 			if err != nil {
 				return nil
 			}
-			
+
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
 			}
-			
+
 			if d.IsDir() {
 				return nil
 			}
-			
+
 			jobs <- fileJob{path: filePath, name: d.Name()}
 			return nil
 		})
 	}()
-	
+
 	wg.Wait()
 	close(results)
 	<-done
-	
+
 	return nil
 }
 
 func (c *config) worker(ctx context.Context, jobs <-chan fileJob, results chan<- matchResult, wg *sync.WaitGroup) {
 	defer wg.Done()
-	
+
 	for job := range jobs {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-		
+
 		content, err := os.ReadFile(job.path)
 		if err != nil || !utf8.Valid(content) {
 			continue
 		}
-		
+
 		output := c.matchToString(string(content), fmt.Sprintf("%s%s: \n", BLUE, job.name))
 		results <- matchResult{
 			filename: job.name,
@@ -265,42 +265,42 @@ func (c *config) matchToString(str string, preString string) string {
 	var printBuilder strings.Builder
 	lineNum := 0
 	matchCount := 0
-	
+
 	for line := range strings.Lines(str) {
 		lineNum++
-		
+
 		// Only run regex once, get indices
 		indices := c.re.FindAllStringIndex(line, -1)
 		if len(indices) == 0 {
 			continue
 		}
-		
+
 		matchCount++
-		
+
 		// Build line number prefix
 		printBuilder.WriteString(RED)
 		fmt.Fprintf(&printBuilder, "%d. ", lineNum)
 		printBuilder.WriteString(WHITE)
-		
+
 		// Build line with highlighted matches
 		curI := 0
 		for j, idx := range indices {
 			start, end := idx[0], idx[1]
-			
+
 			// Pre-match text
 			pre := line[curI:start]
 			if c.trim && j == 0 {
 				pre = strings.TrimLeft(pre, "\t ")
 			}
 			printBuilder.WriteString(pre)
-			
+
 			// Match text (highlighted)
 			printBuilder.WriteString(GREEN)
 			printBuilder.WriteString(line[start:end])
 			printBuilder.WriteString(WHITE)
-			
+
 			curI = end
-			
+
 			// Post-match text (on last match)
 			if j == len(indices)-1 {
 				post := line[end:]
@@ -310,14 +310,14 @@ func (c *config) matchToString(str string, preString string) string {
 				printBuilder.WriteString(post)
 			}
 		}
-		
+
 		printBuilder.WriteByte('\n')
 	}
-	
+
 	if matchCount == 0 {
 		return ""
 	}
-	
+
 	// Prepend filename if provided
 	if preString != "" {
 		return preString + printBuilder.String()
@@ -325,12 +325,14 @@ func (c *config) matchToString(str string, preString string) string {
 	return printBuilder.String()
 }
 
-func main() {
+// main is the entry point. It's excluded from coverage as it's a simple wrapper
+// that cannot be easily unit tested due to os.Exit().
+func main() { // coverage: ignore
 	c, err := Configure()
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	ctx := context.Background()
 	os.Exit(c.Main(ctx))
 }
